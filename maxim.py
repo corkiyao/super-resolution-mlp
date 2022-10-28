@@ -30,19 +30,6 @@ import math
 import h5py
 import time
 
-try:
-    from torch import irfft
-    from torch import rfft
-except ImportError:
-    from torch.fft import irfft2
-    from torch.fft import rfft2
-    def rfft(x, d):
-        t = rfft2(x, dim = (-d))
-        return torch.stack((t.real, t.imag), -1)
-    def irfft(x, d, signal_sizes):
-        return irfft2(torch.complex(x[:,:,0], x[:,:,1]), s = signal_sizes, dim = (-d))
-
-
 
 def layer_norm_process(feature: torch.Tensor, beta=0., gamma=1., eps=1e-5):
     var_mean = torch.var_mean(feature, dim=-1, unbiased=False)
@@ -735,9 +722,9 @@ class MAXIM(nn.Module):
         super().__init__()
         self.features = features
         self.depth = depth
-        self.num_stages = num_stages #跟多损失有关
+        self.num_stages = num_stages #connected the stages
         self.num_groups = num_groups
-        self.num_supervision_scales = num_supervision_scales #跟多损失有关
+        self.num_supervision_scales = num_supervision_scales #connected the numbers of loss function
         self.high_res_stages = high_res_stages
         self.block_size_hr = block_size_hr
         self.block_size_lr = block_size_lr
@@ -1123,9 +1110,11 @@ class MAXIM(nn.Module):
             # Store outputs
             outputs_all.append(outputs)
             #print("outputs_all",len(outputs_all))
-        return outputs_all
+        return outputs_all  ##a list
 
 if __name__ == "__main__":
+    "three Stages, three output。只监督每一个阶段的最终输出，原文是检测每一个阶段的每一个尺度，所以他们的结果是有9个输出，而这里是3个输出。"
+    
     maxim = MAXIM()
     input = torch.zeros(size=(1, 1, 64, 64))  #BCHW
     out= maxim(input)
